@@ -1,14 +1,12 @@
+#!/bin/bash
 
-* Primero se instala tanto el isc-dhcp-server y hostapd
+sudo apt-get install hostapad isc-dhcp-server
 
-```
-sudo apt-get install hostapd isc-dhcp-server
+#########################################################################
+#   Configuramos y activamos el servidor de DHCP con los rangos de red  #
+#   de las ips que va estar repartiendo                                 #
+#########################################################################
 
-```
-
-* Luego vamos a configurar el DHCP Server de manera básica.
-
-```
 sudo cat << __EOT__ >  /etc/dhcp/dhcpd.conf
 ddns-update-style none;
 default-lease-time 600;
@@ -26,11 +24,8 @@ subnet 192.168.50.0 netmask 255.255.255.0 {
 }
 __EOT__
 
-```
+# Activacion del dhcp server
 
-* Lo vamos activar para indicar cual tarjeta de red va estar repartiendo los leases.
-
-```
 sudo cat << __EOT__ > /etc/default/isc-dhcp-server
 # Path to dhcpd's config file (default: /etc/dhcp/dhcpd.conf).
 #DHCPD_CONF=/etc/dhcp/dhcpd.conf
@@ -47,11 +42,11 @@ sudo cat << __EOT__ > /etc/default/isc-dhcp-server
 INTERFACES="wlan1"
 __EOT__
 
-```
 
-* Configuramos la ip estatica en la tarjeda inalambrica que va estar funcionando como Access Point
+#########################################################################
+#   Configuramos de manera estatica el ip de la tarjeta inalambrica     #
+#########################################################################
 
-```
 sudo ifconfig wlan1 down
 sudo ifconfig wlan1 192.168.50.1
 
@@ -84,12 +79,11 @@ iface wlan1 inet static
 up iptables-restore < /etc/iptables.ipv4.nat
 __EOT__
 
-```
 
-* Configuramos hostapd para levantar el access point
+#########################################################################
+#   Configuramos hostapd para poder generar el access point             #
+#########################################################################
 
-
-```
 sudo cat << __EOT__ > /etc/hostapd/hostapd.conf
 interface=wlan1
 driver=nl80211
@@ -106,16 +100,12 @@ auth_algs=1
 ignore_broadcast_ssid=0
 
 #wpa=2
-#wpa_passphrase=myPassword
+#wpa_passphrase=w3lcom3H4ck3rs
+#wpa_key_mgmt=WPA-PSK
 #wpa_pairwise=TKIP
 #rsn_pairwise=CCMP
 __EOT__
 
-```
-
-* Lo habilitamos por default
-
-```
 sudo cat << __EOT__ > /etc/default/hostapd
 # Defaults for hostapd initscript
 #
@@ -139,43 +129,25 @@ DAEMON_CONF="/etc/hostapd/hostapd.conf"
 #DAEMON_OPTS="-d"
 __EOT__
 
-```
+#########################################################################
+#   Configuramos iptables y la redireccion de paquetes                  #
+#########################################################################
 
-* Definimos los parametros de kernel para poder retransmitir paquetes de red
 
-```
-sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
 sudo cat /etc/sysctl.conf | sed -e 's/net.ipv4.ip_forward=0/net.ipv4.ip_forward=1/g' > /etc/sysctl.conf
 
-```
+sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
 
-* Definimos las reglas de iptables para poder redirigir los paquetes.
 
-```
 sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 sudo iptables -A FORWARD -i eth0 -o wlan1 -m state --state RELATED,ESTABLISHED -j ACCEPT
 sudo iptables -A FORWARD -i wlan1 -o eth0 -j ACCEPT
-```
 
-* Salvamos las reglas en un archivo
-
-```
 sudo sh -c "iptables-save > /etc/iptables.ipv4.nat"
-```
 
-* Levantamos los servicios hostapd e isc-dhcp-server
-
-```
 sudo service isc-dhcp-server start
 sudo service hostapd start
-```
 
-* Los programamos para que inicie cuando reincie la raspberry pi
-
-```
 sudo update-rc.d hostapd defaults
 sudo update-rc.d isc-dhcp-server defaults
-```
-
-
 
