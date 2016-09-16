@@ -1,0 +1,28 @@
+# Convertimos el iso en imagen de disco
+
+```
+hdiutil convert -format UDRW -o xubuntu-16.04.1-desktop-amd64 xubuntu-16.04.1-desktop-amd64.iso 
+
+```
+
+# Listamos los discos que estan montados en nuestro sistema
+
+
+```
+sudo diskutil list
+
+```
+
+# Desmontamos el disco en cuestion 
+
+```
+sudo diskutil umountDisk /dev/disk2
+
+```
+
+# Planchamos la imagen en el dispositivo de memoria en este caso en una memoria booteable
+
+```
+sudo dd if=xubuntu-16.04.1-desktop-amd64.dmg of=/dev/rdisk2 bs=1m
+
+``
